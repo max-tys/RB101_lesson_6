@@ -1,5 +1,3 @@
-require 'pry'
-
 WINNING_LINES = [[1, 2, 3], [4, 5, 6], [7, 8, 9]] + # rows
                 [[1, 4, 7], [2, 5, 8], [3, 6, 9]] + # columns
                 [[1, 5, 9], [3, 5, 7]]              # diagonals
@@ -7,29 +5,9 @@ INITIAL_MARKER = ' '
 PLAYER_MARKER = 'X'
 COMPUTER_MARKER = 'O'
 
-# Methods that format text
+# Methods that format text.
 def prompt(msg)
   puts "==> #{msg}"
-end
-
-def joinor(brd, d1=', ', d2='or')
-  output = ''
-
-  if brd.size == 1
-    output =  "#{brd[0]}"
-  elsif brd.size == 2
-    output = "#{brd[0]} #{d2} #{brd[1]}"
-  else
-    brd.each do |pos|
-      unless pos == brd.last
-        output += "#{pos.to_s}#{d1}"
-      else
-        output += "#{d2} #{pos.to_s}"
-      end
-    end
-  end
-
-  output
 end
 
 def display_board(brd)
@@ -50,10 +28,9 @@ def display_board(brd)
   puts ""
 end
 
-# Method to place first piece on the board
-def place_first_piece(brd)
+def get_first_player
   loop do
-    prompt "Who should go first? (1 / 2)"
+    prompt "Who should go first? (1 / 2 / 3)"
     prompt "1) Player"
     prompt "2) Computer"
     prompt "3) Random"
@@ -61,37 +38,59 @@ def place_first_piece(brd)
     first_player = gets.chomp
 
     case first_player
-    when '1' then player_places_piece!(brd)
-    when '2' then computer_places_piece!(brd)
-    when '3'
-      random_player = [1, 2].sample
-      case random_player
-      when 1 then player_places_piece!(brd)
-      when 2 then computer_places_piece!(brd)
-      end
+    when '1' then return 'player'
+    when '2' then return 'computer'
+    when '3' then return ['player', 'computer'].sample
     end
 
-    if first_player == '1' || first_player == '2' ||  first_player == '3'
-      display_board(brd)
-      break
-    end
-
-    prompt "Invalid choice. Type 1, 2, or 3."
+    prompt "Invalid choice. Please type 1, 2, or 3."
   end
 end
 
-# Methods that keep track of the board pieces
+def joinor(keys, d1=', ', d2='or')
+  # Lists the available spaces on the 3x3 grid nicely for the player.
+  output = ''
+
+  case keys.size
+  when 1 then output = "#{keys[0]}"
+  when 2 then output = "#{keys[0]} #{d2} #{keys[1]}"
+  else
+    keys.each do |pos|
+      break if pos == keys.last
+      output += "#{pos.to_s}#{d1}"
+    end
+    output += "#{d2} #{keys.last.to_s}"
+  end
+
+  output
+end
+
+# Methods that read the position of the board pieces.
 def initialize_board
+  # Returns a hash that keeps track of the pieces on the board.
   new_board = {}
   (1..9).each { |num| new_board[num] = INITIAL_MARKER }
   new_board
 end
 
 def empty_squares(brd)
+  # Returns an array of keys that correspond to empty squares.
   brd.keys.select { |num| brd[num] == INITIAL_MARKER }
 end
 
 # Methods that modify the board
+def place_piece!(brd, current_player)
+  if current_player == 'player'
+    player_places_piece!(brd)
+  else
+    computer_places_piece!(brd)
+  end
+end
+
+def alternate_player(current_player)
+  current_player == 'player' ? 'computer' : 'player'
+end
+
 def player_places_piece!(brd)
   square = ''
 
@@ -106,13 +105,14 @@ def player_places_piece!(brd)
 end
 
 def computer_places_piece!(brd)
-  # Offense first. The computer will try to win if it can.
+  # Offense first. The computer will make the winning move if it can.
   if find_hot_square(brd, COMPUTER_MARKER)
     square = find_hot_square(brd, COMPUTER_MARKER)
-  # Defence second. The computer will prevent you from winning if it can't win.
+  # Defence second. Computer tries to prevent you from winning if it can't win.
   elsif find_hot_square(brd, PLAYER_MARKER)
     square = find_hot_square(brd, PLAYER_MARKER)
-  # If no one can win, the computer will pick a random square.
+  # If no one is close to winning, computer will try to fill square 5.
+  # If that's been filled, computer will fill a random square.
   elsif brd[5] == ' '
     square = 5
   else
@@ -167,23 +167,14 @@ scores = { 'Player' => 0, 'Computer' => 0 }
 loop do
   board = initialize_board
 
-  place_first_piece(board)
-
-  x_goes_next = board.values.count('O') > board.values.count('X')
+  current_player = get_first_player
 
   # Sub-loop to place pieces until end-game condition is met.
   loop do
     display_board(board)
-
-    if x_goes_next
-      player_places_piece!(board)
-      x_goes_next = !x_goes_next
-      break if someone_won?(board) || board_full?(board)
-    else
-      computer_places_piece!(board)
-      x_goes_next = !x_goes_next
-      break if someone_won?(board) || board_full?(board)
-    end
+    place_piece!(board, current_player)
+    current_player = alternate_player(current_player)
+    break if someone_won?(board) || board_full?(board)
   end
 
   display_board(board)
