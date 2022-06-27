@@ -33,8 +33,8 @@ end
 def display_bj_winner(outcome)
   case outcome
   when 'player' then prompt("You have a blackjack hand. You won!")
-  when 'tie'    then prompt("You and the dealer have blackjack hands. It's a tie!")
-  when 'dealer' then prompt("The dealer has a blackjack hand. You lost. Better luck next time!")
+  when 'tie'    then prompt("Both of you have blackjack hands. It's a tie!")
+  when 'dealer' then prompt("The dealer has a blackjack hand. You lost.")
   end
 end
 
@@ -51,10 +51,6 @@ def initialize_deck
   suit = %w(Ace 2 3 4 5 6 7 8 9 10 Jack Queen King)
   deck = suit * 4
   deck.shuffle!
-end
-
-def deal_cards!(deck)
-  c1, c2 = deck.shift, deck.shift
 end
 
 def hit!(cards, deck)
@@ -98,8 +94,6 @@ def detect_bj_winner(player, dealer)
     'dealer'
   elsif blackjack?(player)
     'player'
-  else
-    nil
   end
 end
 
@@ -126,12 +120,16 @@ loop do
   puts LINE
   prompt("Welcome to Blackjack! ♠ ♥ ♦ ♣")
   deck = initialize_deck
-  dealer_cards = deal_cards!(deck)
-  player_cards = deal_cards!(deck)
+  dealer_cards = []
+  player_cards = []
+  2.times do
+    dealer_cards << deck.shift
+    player_cards << deck.shift
+  end
 
   # Check for blackjack hands at the outset.
   bj_winner = detect_bj_winner(player_cards, dealer_cards)
-  if bj_winner != nil
+  if !bj_winner.nil?
     prompt("Dealer's cards: #{display_all_cards(dealer_cards)}.")
     prompt("Your cards: #{display_all_cards(player_cards)}.")
     display_bj_winner(bj_winner)
